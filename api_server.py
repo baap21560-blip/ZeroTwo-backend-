@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
 import asyncio
+from livekit import api
+import os
+
 
 # ✅ imports must be at the top
 from livekit.plugins import google
