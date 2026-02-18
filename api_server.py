@@ -1,13 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import subprocess
-import asyncio
 from livekit import api
 import os
-
-
-# ✅ imports must be at the top
-from livekit.plugins import google
 
 app = FastAPI()
 
@@ -24,30 +18,21 @@ app.add_middleware(
 def home():
     return {"status": "ZeroTwo Backend Running"}
 
-@app.post("/start")
-def start_agent():
-    subprocess.Popen(["python", "ZeroTwo.py"])
-    return {"message": "Agent Started"}
+# 🔑 This is used by frontend to join LiveKit
+@app.get("/token")
+def get_token():
+    LIVEKIT_API_KEY = os.environ["LIVEKIT_API_KEY"]
+    LIVEKIT_API_SECRET = os.environ["LIVEKIT_API_SECRET"]
 
-
-# ✅ Web chat endpoint
-@app.post("/chat")
-async def chat(data: dict):
-    message = data.get("message", "")
-
-    try:
-        # Create temporary AI model (same brain)
-        model = google.beta.realtime.RealtimeModel(
-            voice="Aoede",
-            temperature=1.2,
+    token = (
+        api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+        .with_identity("web-user")
+        .with_grants(
+            api.VideoGrants(
+                room_join=True,
+                room="zerotwo-room",
+            )
         )
+    )
 
-        response = await model.generate(input=message)
-
-        reply = response.text if hasattr(response, "text") else str(response)
-
-    except Exception as e:
-        print("Error:", e)
-        reply = "Hmm… mujhe thoda sochne do."
-
-    return {"response": reply}
+    return {"token": token.to_jwt()}
